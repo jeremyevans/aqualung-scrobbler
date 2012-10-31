@@ -1,0 +1,34 @@
+aqualung-scrobbler - last.fm scrobbler for Aqualung
+===================================================
+
+Requirements
+------------
+
+Aqualung 1.0+ or svn version 1263+, configured with lua extensions enabled.
+curl (for uploading scrobbles)
+md5, python, perl, or ruby (for MD5 digest creation)
+
+Setup
+-----
+
+./setup.sh # Follow instructions
+
+Caveats
+-----------
+
+* Only scrobbles one track at a time.
+* If there is an error in scrobbling, the scrobble is lost.
+* Scrobbling only happens on next track play, so if you stop after playing
+  a track and don't play another track, the last track played won't get
+  scrobbled.
+* Reloading the lua interpreter will cause the currently playing track not
+  to get scrobbled.
+* Not thoroughly reviewed for security issues, shells out to curl using
+  metadata from the audio files being played, possible issues with
+  untrusted audio files, use at your own risk.
+* Not thoroughly tested.
+
+Author
+------
+
+Jeremy Evans <code@jeremyevans.net>
