@@ -1,11 +1,11 @@
 dofile(os.getenv("HOME") .. "/.aqualung/scrobbler_config.lua")
 
+Aqualung.scrobbler.debug = false
 Aqualung.scrobbler.previous_file = {}
 Aqualung.scrobbler.keys = {'track', 'artist', 'album', 'trackNumber', 'duration', 'timestamp'}
 
 function shell_escape(s)
-  s:gsub("'","'\\''")
-  return s
+  return s:gsub("'","'\\''")
 end
 
 function url_encode(str)
@@ -48,32 +48,44 @@ function scrobble_params()
   return shell_escape(param_string) .. "&api_sig='`" .. Aqualung.scrobbler.md5 .. " '" .. shell_escape(sig_input .. Aqualung.scrobbler.api_secret) .. "'`"
 end
 
-function scrobble()
- os.execute(Aqualung.scrobbler.curl .. " -d '" .. scrobble_params() .. " " .. Aqualung.scrobbler.endpoint .. " >/dev/null &")
+function debug_print(s)
+  if Aqualung.scrobbler.debug then
+    print(s)
+  end
 end
 
-function set_previous_file_info()
-  local pf = Aqualung.scrobbler.previous_file
-  pf.track = m("title")
-  pf.artist = m("artist")
-  pf.album = m("album")
-  pf.trackNumber = m("trackno")
-  pf.duration = math.floor(i("samples")/i("sample_rate"))
+function scrobble()
+  local s = Aqualung.scrobbler.curl .. " -d '" .. scrobble_params() .. " " .. Aqualung.scrobbler.endpoint .. " >/dev/null &"
+  debug_print(s)
+  os.execute(s)
 end
 
 function check_scrobble()
   local current_time = os.time()
   local pf = Aqualung.scrobbler.previous_file
-  if pf.timestamp and
-     pf.track ~= "" and
-     pf.artist ~= "" and
-     pf.duration and
-     pf.duration > 30 and
-     current_time - pf.timestamp > pf.duration/2 then
+
+  if not pf.timestamp then
+    debug_print("Not scrobbling: No Timestamp")
+  elseif pf.track == "" then
+    debug_print("Not scrobbling: No Track Title")
+  elseif pf.artist == "" then
+    debug_print("Not scrobbling: No Artist")
+  elseif not pf.duration then
+    debug_print("Not scrobbling: No duration")
+  elseif pf.duration < 30 then
+    debug_print("Not scrobbling: Track duration less than 30 seconds")
+  elseif current_time - pf.timestamp <= pf.duration/2 then
+    debug_print("Not scrobbling: Less than half the song played")
+  else
     scrobble()
   end
+
   pf.timestamp = current_time
-  set_previous_file_info()
+  pf.track = m("title")
+  pf.artist = m("artist")
+  pf.album = m("album")
+  pf.trackNumber = m("trackno")
+  pf.duration = math.floor(i("samples")/i("sample_rate"))
 end
 
 add_hook("track_change", check_scrobble)
